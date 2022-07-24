@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Logger, Param, ParseIntPipe, Patch, Post, Put, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { User } from 'src/auth/user.entity';
@@ -11,6 +11,7 @@ import { boardStatusValidationPipe } from './pipes/board-status-validation.pipe'
 @Controller('boards')
 @UseGuards(AuthGuard()) // 유저 인증 관련 미들웨어 (jwt토큰이 있어야 기능수행) , Req 시 User정보 같이 넘겨줌
 export class BoardsController {
+	private logger = new Logger('Board'); // loger객체 생성
 	constructor(private boardsService : BoardsService) {}
 
 	@Get()
@@ -21,6 +22,8 @@ export class BoardsController {
 	//토큰정보의 유저가 생성한 게시물만 조회
 	@Get('/user')
 	getUserBoard(@GetUser() user: User): Promise <Board[]> {
+		this.logger.verbose(`User ${user.username} trying to get all boards`); // 로그
+		
 		return this.boardsService.getUserBoards(user);
 	}
 
@@ -28,6 +31,10 @@ export class BoardsController {
 	@UsePipes(ValidationPipe)
 	createBoard(@Body() createBoardDto: createBoardDto, 
 	@GetUser() user: User): Promise<Board> { // 유저 정보 같이 넘기기
+
+		this.logger.verbose(`User ${user.username} creating a new board. 
+		Payload: ${JSON.stringify (createBoardDto)}`);   // 로그 
+
 		return this.boardsService.createBoard(createBoardDto, user);
 	}
 
