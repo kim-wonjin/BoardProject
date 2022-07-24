@@ -6,6 +6,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { BoardRepository } from './board.repository';
 import { Board } from './board.entity';
 import { stat } from 'fs';
+import { User } from 'src/auth/user.entity';
+import { QueryBuilder } from 'typeorm';
 
 @Injectable()
 export class BoardsService {
@@ -14,35 +16,25 @@ export class BoardsService {
 		@InjectRepository(BoardRepository)
 		private boardRepository: BoardRepository,
 		) {}
-	
-	
-		// private boards: Board[] = []; // 보드 내용을 담을 배열
-
-
-		// getAllBoards(): Board[] {
-		// 	return this.boards;
-		// }
-
-		// createBoard(createBoardDto: createBoardDto) {
-
-		// 	const {title, description} = createBoardDto;
-
-		// 	const board: Board = {
-		// 		id: uuid(),
-		// 		title,
-		// 		description,
-		// 		status: BoardStatus.PUBLIC
-		// 	}
-		// 	this.boards.push(board);
-		// 	return board;
-		// }
 
 		async getAllBoards():Promise <Board[]> {
 			return this.boardRepository.find();
 		}
 
-		createBoard(createBoardDto: createBoardDto): Promise <Board> {
-			return this.boardRepository.createBoard(createBoardDto);
+		// QueryBuilder 사용 
+		async getUserBoards(user: User): Promise <Board[]> {
+
+			const query = this.boardRepository.createQueryBuilder('board'); // board 테이블에서 쿼리 생성
+
+			query.where('board.userId = :userId', {userId: user.id});
+
+			const boards = await query.getMany();
+
+			return boards;
+		}
+
+		createBoard(createBoardDto: createBoardDto, user: User): Promise <Board> {
+			return this.boardRepository.createBoard(createBoardDto, user);
 
 		}
 
@@ -55,8 +47,9 @@ export class BoardsService {
 			return found;
 		}
 
-		async deleteBoard(id: number): Promise<void> {
-			const result = await this.boardRepository.delete(id);
+		async deleteBoard(id: number, user: User): Promise<void> {
+			//user 정보도 파라미터로 넘겨서 생성한 유저만 삭제할 수 있도록 
+			const result = await this.boardRepository.delete({id, user});
 			if (result.affected === 0) {
 				throw new NotFoundException(`Can't find board with id ${id}`);
 			}
@@ -71,24 +64,6 @@ export class BoardsService {
 
 		}
 
-		// getBoardById(id: string): Board {
-			
-		// 	const found = this.boards.find((board) => board.id === id);
-		// 	if (!found) {
-		// 		throw new NotFoundException(`${id}의 결과를 찾을 수 없습니다`);
-		// 	}
-		// 	return found;
-		// }
-
-		// deleteBoard(id: string): void {
-		// 	const found = this.getBoardById(id);
-		// 	this.boards = this.boards.filter((board) => board.id !== found.id);
-		// }
-
-		// updateBoardStatus(id: string, status: BoardStatus): Board {
-		// 	const board = this.getBoardById(id);
-		// 	board.status = status;
-		// 	return board;
-		// }
+	
 	
 }
